@@ -6,7 +6,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     variantId: '615476',
     name: 'Basic Monthly',
     description: 'Perfect for small families',
-    price: 9.99,
+    price: 300.00,
     interval: 'monthly',
     features: [
       'Up to 2 children',
