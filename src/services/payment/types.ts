@@ -18,6 +18,7 @@ export interface CheckoutOptions {
 
 export interface SubscriptionStatus {
   id: string;
+  customerId: string;
   status: 'active' | 'canceled' | 'past_due';
   currentPeriodEnd: string;
   cancelAt?: string;

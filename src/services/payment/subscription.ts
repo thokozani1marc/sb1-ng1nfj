@@ -19,6 +19,7 @@ export async function getSubscriptionStatus(userId: string): Promise<Subscriptio
 
     return {
       id: data.subscription_id,
+      customerId: data.customer_id,
       status: data.status,
       currentPeriodEnd: data.current_period_end,
       cancelAt: data.cancel_at,

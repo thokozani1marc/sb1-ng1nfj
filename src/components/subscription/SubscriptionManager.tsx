@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { PaymentService } from '../../services/payment.service';
-import { CreditCard, Shield, AlertCircle } from 'lucide-react';
+import { CreditCard, Shield, AlertCircle, ExternalLink } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { PricingPlans } from './PricingPlans';
 
@@ -18,10 +18,12 @@ export function SubscriptionManager() {
   const [isLoading, setIsLoading] = useState(true);
   const [showPlans, setShowPlans] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
+  const [portalUrl, setPortalUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (user?.id) {
       loadSubscription();
+      loadCustomerPortal();
     }
   }, [user?.id]);
 
@@ -35,6 +37,17 @@ export function SubscriptionManager() {
       toast.error('Failed to load subscription');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadCustomerPortal = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const url = await PaymentService.getCustomerPortalLink(user.id);
+      setPortalUrl(url);
+    } catch (error) {
+      console.error('Failed to load customer portal:', error);
     }
   };
 
@@ -112,6 +125,17 @@ export function SubscriptionManager() {
             </div>
 
             <div className="mt-6 space-y-3">
+              {portalUrl && (
+                <a
+                  href={portalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full inline-flex justify-center items-center px-4 py-2 border border-indigo-300 shadow-sm text-sm font-medium rounded-md text-indigo-700 bg-white hover:bg-indigo-50"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Manage Subscription
+                </a>
+              )}
               <button
                 onClick={() => setShowPlans(true)}
                 className="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"

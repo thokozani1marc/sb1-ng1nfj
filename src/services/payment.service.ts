@@ -1,5 +1,5 @@
 import { SUBSCRIPTION_PLANS } from './payment/plans';
-import { createCheckoutSession } from './payment/lemon-squeezy';
+import { createCheckoutSession, getCustomerPortalLink } from './payment/lemon-squeezy';
 import { getSubscriptionStatus, cancelSubscription } from './payment/subscription';
 import type { SubscriptionPlan, CheckoutOptions } from './payment/types';
 
@@ -29,5 +29,9 @@ export class PaymentService {
 
   static async cancelSubscription(subscriptionId: string) {
     return cancelSubscription(subscriptionId);
+  }
+
+  static async getCustomerPortalLink(userId: string): Promise<string> {
+    return getCustomerPortalLink(userId);
   }
 }
