@@ -14,10 +14,19 @@ export class PaymentService {
       throw new Error('Invalid plan selected');
     }
 
+    // If the plan has a direct checkout URL, use that
+    if (plan.checkoutUrl) {
+      return plan.checkoutUrl;
+    }
+
     const options: CheckoutOptions = {
       userId,
       planId: plan.variantId,
       email,
+      customData: {
+        user_id: userId,
+        plan_id: planId
+      }
     };
 
     return createCheckoutSession(options);

@@ -4,8 +4,9 @@ export interface SubscriptionPlan {
   name: string;
   description: string;
   price: number;
-  interval: 'monthly' | 'yearly';
+  interval: 'monthly' | 'yearly' | 'once-off' | 'semi-annual';
   features: string[];
+  checkoutUrl?: string;
 }
 
 export interface CheckoutOptions {
@@ -14,12 +15,19 @@ export interface CheckoutOptions {
   email: string;
   successUrl?: string;
   cancelUrl?: string;
+  customData?: {
+    user_id: string;
+    plan_id: string;
+  };
 }
 
 export interface SubscriptionStatus {
   id: string;
   customerId: string;
-  status: 'active' | 'canceled' | 'past_due';
+  status: 'active' | 'canceled' | 'past_due' | 'expired';
   currentPeriodEnd: string;
   cancelAt?: string;
+  cardBrand?: string;
+  cardLastFour?: string;
+  updatePaymentMethodUrl?: string;
 }

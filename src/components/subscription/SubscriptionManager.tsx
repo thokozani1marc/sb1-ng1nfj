@@ -4,17 +4,18 @@ import { PaymentService } from '../../services/payment.service';
 import { CreditCard, Shield, AlertCircle, ExternalLink } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { PricingPlans } from './PricingPlans';
+import { SubscriptionStatus } from '../../services/payment/types';
 
 interface Subscription {
   id: string;
-  plan_id: string;
-  status: string;
-  current_period_end: string;
+  planId: string;
+  status: SubscriptionStatus;
+  currentPeriodEnd: string;
 }
 
 export function SubscriptionManager() {
   const { user } = useAuth();
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showPlans, setShowPlans] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
@@ -31,9 +32,12 @@ export function SubscriptionManager() {
     if (!user?.id) return;
     
     try {
+      setIsLoading(true);
       const data = await PaymentService.getSubscription(user.id);
+      console.log('Subscription data:', data);
       setSubscription(data);
     } catch (error) {
+      console.error('Failed to load subscription:', error);
       toast.error('Failed to load subscription');
     } finally {
       setIsLoading(false);
@@ -41,11 +45,17 @@ export function SubscriptionManager() {
   };
 
   const loadCustomerPortal = async () => {
-    if (!user?.id) return;
-    
     try {
-      const url = await PaymentService.getCustomerPortalLink(user.id);
-      setPortalUrl(url);
+      const userId = user?.id;
+      if (!userId) {
+        console.log('No user ID found');
+        return;
+      }
+
+      const url = await PaymentService.getCustomerPortalLink(userId);
+      if (url) {
+        setPortalUrl(url);
+      }
     } catch (error) {
       console.error('Failed to load customer portal:', error);
     }
@@ -92,82 +102,76 @@ export function SubscriptionManager() {
   return (
     <div className="bg-white shadow rounded-lg divide-y divide-gray-200">
       <div className="p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-6">Subscription</h2>
-        
+        <h2 className="text-lg font-medium text-gray-900 mb-4">Subscription Status</h2>
         {subscription ? (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Shield className="h-6 w-6 text-indigo-600" />
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    {subscription.plan_id.split('-').map(word => 
-                      word.charAt(0).toUpperCase() + word.slice(1)
-                    ).join(' ')}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Active until {new Date(subscription.current_period_end).toLocaleDateString()}
-                  </p>
-                </div>
+              <div className="flex items-center space-x-2">
+                <Shield className="h-5 w-5 text-green-500" />
+                <span className="text-sm font-medium text-gray-900">
+                  Status: {subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1)}
+                </span>
               </div>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                subscription.status === 'active' 
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-yellow-100 text-yellow-800'
-              }`}>
-                {subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1)}
-              </span>
-            </div>
-
-            <div className="flex items-center space-x-3 text-sm text-gray-500">
-              <CreditCard className="h-4 w-4" />
-              <span>Next billing date: {new Date(subscription.current_period_end).toLocaleDateString()}</span>
-            </div>
-
-            <div className="mt-6 space-y-3">
-              {portalUrl && (
-                <a
-                  href={portalUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full inline-flex justify-center items-center px-4 py-2 border border-indigo-300 shadow-sm text-sm font-medium rounded-md text-indigo-700 bg-white hover:bg-indigo-50"
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Manage Subscription
-                </a>
+              {subscription.cardBrand && subscription.cardLastFour && (
+                <div className="flex items-center space-x-2">
+                  <CreditCard className="h-5 w-5 text-gray-400" />
+                  <span className="text-sm text-gray-500">
+                    {subscription.cardBrand} ending in {subscription.cardLastFour}
+                  </span>
+                </div>
               )}
-              <button
-                onClick={() => setShowPlans(true)}
-                className="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-              >
-                Change Plan
-              </button>
-              {subscription.status === 'active' && (
+            </div>
+
+            {subscription.currentPeriodEnd && (
+              <div className="text-sm text-gray-500">
+                Current period ends: {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
+              </div>
+            )}
+
+            {subscription.status === 'active' && (
+              <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3">
+                {subscription.updatePaymentMethodUrl && (
+                  <a
+                    href={subscription.updatePaymentMethodUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    Update Payment Method
+                    <ExternalLink className="ml-2 h-4 w-4" />
+                  </a>
+                )}
                 <button
                   onClick={handleCancelSubscription}
                   disabled={isCanceling}
-                  className="w-full inline-flex justify-center items-center px-4 py-2 border border-red-300 shadow-sm text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                 >
                   {isCanceling ? 'Canceling...' : 'Cancel Subscription'}
                 </button>
-              )}
-            </div>
+              </div>
+            )}
+
+            {subscription.status === 'canceled' && (
+              <div className="flex items-center space-x-2 text-yellow-800">
+                <AlertCircle className="h-5 w-5" />
+                <span className="text-sm">
+                  Your subscription will end on{' '}
+                  {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
+                </span>
+              </div>
+            )}
           </div>
         ) : (
-          <div className="text-center">
-            <AlertCircle className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No Active Subscription</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Get started by selecting a subscription plan.
+          <div>
+            <p className="text-sm text-gray-500 mb-4">
+              You don't have an active subscription. Choose a plan to get started.
             </p>
-            <div className="mt-6">
-              <button
-                onClick={() => setShowPlans(true)}
-                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
-              >
-                View Plans
-              </button>
-            </div>
+            <button
+              onClick={() => setShowPlans(true)}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              View Plans
+            </button>
           </div>
         )}
       </div>

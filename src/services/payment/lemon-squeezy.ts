@@ -17,16 +17,20 @@ if (!STORE_ID) {
 export const lemonSqueezy = new LemonSqueezy(API_KEY);
 
 export async function createCheckoutSession(options: CheckoutOptions): Promise<string> {
-  const { userId, planId, email, successUrl, cancelUrl } = options;
+  const { planId, email, successUrl, cancelUrl, customData } = options;
 
   try {
+    console.log('Creating checkout session:', {
+      storeId: STORE_ID,
+      variantId: planId,
+      customData,
+      email
+    });
+
     const response = await lemonSqueezy.createCheckout({
-      storeId: parseInt(STORE_ID), // Changed from store to storeId
+      storeId: parseInt(STORE_ID),
       variantId: parseInt(planId),
-      customData: {
-        user_id: userId,
-        plan_id: planId,
-      },
+      customData,
       checkoutOptions: {
         email,
         successUrl: successUrl || `${window.location.origin}/dashboard?checkout=success`,
@@ -38,6 +42,7 @@ export async function createCheckoutSession(options: CheckoutOptions): Promise<s
       throw new Error('Checkout URL not found in response');
     }
 
+    console.log('Checkout session created:', response.data.attributes.url);
     return response.data.attributes.url;
   } catch (error) {
     console.error('Lemon Squeezy checkout error:', error);
@@ -45,32 +50,14 @@ export async function createCheckoutSession(options: CheckoutOptions): Promise<s
   }
 }
 
-const handleSubscribe = async () => {
-  try {
-    const options: CheckoutOptions = {
-      userId: 'your_user_id', // Replace with actual user ID
-      planId: 'your_plan_id', // Replace with actual plan ID
-      email: 'user@example.com', // Replace with actual user email
-      successUrl: '/dashboard', // Redirect to dashboard
-      cancelUrl: '/cancel',
-    };
 
-    const sessionUrl = await createCheckoutSession(options);
-    if (sessionUrl) {
-      window.location.href = sessionUrl;
-    }
-  } catch (error) {
-    console.error('Subscription error:', error);
-    alert('There was an error processing your subscription. Please try again later.');
-  }
-};
-
-export async function getCustomerPortalLink(userId: string): Promise<string> {
+export async function getCustomerPortalLink(userId: string): Promise<string | null> {
   try {
     // First get the subscription to get the customer ID
     const subscription = await getSubscriptionStatus(userId);
     if (!subscription?.customerId) {
-      throw new Error('No active subscription found');
+      console.log('No active subscription found for user:', userId);
+      return null;
     }
 
     const response = await lemonSqueezy.getCustomerPortal({
@@ -79,12 +66,13 @@ export async function getCustomerPortalLink(userId: string): Promise<string> {
     });
 
     if (!response.data?.attributes?.url) {
-      throw new Error('Customer portal URL not found in response');
+      console.log('No portal URL found in response:', response);
+      return null;
     }
 
     return response.data.attributes.url;
   } catch (error) {
-    console.error('Error fetching customer portal link:', error);
-    throw error;
+    console.error('Error getting customer portal link:', error);
+    return null;
   }
 }
